@@ -4,9 +4,19 @@ from geodepy.transform import geo2grid, grid2geo, llh2xyz, xyz2llh
 from geodepy.convert import dms2dd_v, read_dnacoord
 import numpy as np
 import os.path
+from math import isclose
+from hypothesis import given, settings, strategies as st
 
 
 class TestTransforms(unittest.TestCase):
+    @given(lat=st.floats(-90, 90), lon=st.floats(-180, 180), h=st.floats(-1000, 9000))
+    def test_xyz_llh_roundtrip(self, lat, lon, h):
+        x, y, z = llh2xyz(lat, lon, h)
+        lat2, lon2, h2 = xyz2llh(x, y, z)
+        assert isclose(lat, lat2, abs_tol=0.00000001)
+        assert isclose(lon, lon2, abs_tol=0.00000001)
+        assert isclose(h, h2, abs_tol=0.0001)
+
     # Tests equality between values produced using grid2geo and geo2grid
     # TODO: Change Source Data input to natadjust_rvs_example.dat
     def test_geo_grid_transform_interoperability(self):
