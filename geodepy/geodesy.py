@@ -15,26 +15,26 @@ from geodepy.constants import grs80
 from geodepy.transform import grid2geo
 
 
-def enu2xyz(lat, long, east, north, up):
+def enu2xyz(lat, lon, east, north, up):
     """
     function to convert a vector in a local east, north, up reference frame to
     a vector in a cartesian x, y, z reference frame
     :param lat: latitude in decimal degrees
-    :param long: longitude in decimal degrees
+    :param lon: longitude in decimal degrees
     :param east: in metres
     :param north: in metres
     :param up: in metres
     :return: x, y, z in metres
     """
     lat = radians(lat)
-    long = radians(long)
+    lon = radians(lon)
     # Create ENU Vector
     enu = np.array([[east],
                     [north],
                     [up]])
     # Create Rotation Matrix
-    rotate = np.array([[-sin(long), -sin(lat)*cos(long), cos(lat)*cos(long)],
-                       [cos(long), -sin(lat)*sin(long), cos(lat)*sin(long)],
+    rotate = np.array([[-sin(lon), -sin(lat)*cos(lon), cos(lat)*cos(lon)],
+                       [cos(lon), -sin(lat)*sin(lon), cos(lat)*sin(lon)],
                        [0, cos(lat), sin(lat)]])
     xyz = np.dot(rotate, enu)
     # Assign to separate variables
@@ -44,27 +44,27 @@ def enu2xyz(lat, long, east, north, up):
     return x, y, z
 
 
-def xyz2enu(lat, long, x, y, z):
+def xyz2enu(lat, lon, x, y, z):
     """
     function to convert a vector in a cartesian x, y, z reference frame to a
     vector in a local east, north, up reference frame
     :param lat: latitude in decimal degrees
-    :param long: longitude in decimal degrees
+    :param lon: longitude in decimal degrees
     :param x: in metres
     :param y: in metres
     :param z: in metres
     :return: east, north, up in metres
     """
     lat = radians(lat)
-    long = radians(long)
+    lon = radians(lon)
     # Create XYZ Vector
     xyz = np.array([[x],
                     [y],
                     [z]])
     # Create Rotation Matrix
-    rotate = np.array([[-sin(long), cos(long), 0],
-                       [-sin(lat)*cos(long), -sin(lat)*sin(long), cos(lat)],
-                       [cos(lat)*cos(long), cos(lat)*sin(long), sin(lat)]])
+    rotate = np.array([[-sin(lon), cos(lon), 0],
+                       [-sin(lat)*cos(lon), -sin(lat)*sin(lon), cos(lat)],
+                       [cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat)]])
     enu = np.dot(rotate, xyz)
     # Assign to separate variables
     east = float(enu[0])
@@ -304,7 +304,7 @@ def vincdirio():
 
     No Output:
     Uses the function vincdir to calculate for each row in the csv file the
-    geographic coordinate (lat, long) of Point 2 and the Azimuth from Point 2
+    geographic coordinate (lat, lon) of Point 2 and the Azimuth from Point 2
     to Point 1, all in Degrees Minutes Seconds. This data is written to a new
     file with the name <inputfile>_out.csv
     """
@@ -322,14 +322,14 @@ def vincdirio():
     # outfilewriter.writerow(['Latitude2', 'Longitude2', 'azimuth2to1'])
     for row in csvreader:
         lat1 = hp2dec(float(row[0]))
-        long1 = hp2dec(float(row[1]))
+        lon1 = hp2dec(float(row[1]))
         azimuth1to2 = hp2dec(float(row[2]))
         ell_dist = float(row[3])
-        lat2, long2, azimuth2to1 = vincdir(lat1, long1, azimuth1to2, ell_dist)
+        lat2, lon2, azimuth2to1 = vincdir(lat1, lon1, azimuth1to2, ell_dist)
         lat2 = dec2hp(lat2)
-        long2 = dec2hp(long2)
+        lon2 = dec2hp(lon2)
         azimuth2to1 = dec2hp(azimuth2to1)
-        output = [lat2, long2, azimuth2to1]
+        output = [lat2, lon2, azimuth2to1]
         outfilewriter.writerow(output)
     # Close Files
     outfile.close()
@@ -352,10 +352,10 @@ def vincinvio():
     outfilewriter.writerow(['Ell_Dist', 'Azimuth1to2', 'Azimuth2to1'])
     for row in csvreader:
         lat1 = hp2dec(float(row[0]))
-        long1 = hp2dec(float(row[1]))
+        lon1 = hp2dec(float(row[1]))
         lat2 = hp2dec(float(row[2]))
-        long2 = hp2dec(float(row[3]))
-        ell_dist, azimuth1to2, azimuth2to1 = vincinv(lat1, long1, lat2, long2)
+        lon2 = hp2dec(float(row[3]))
+        ell_dist, azimuth1to2, azimuth2to1 = vincinv(lat1, lon1, lat2, lon2)
         azimuth1to2 = dec2hp(azimuth1to2)
         azimuth2to1 = dec2hp(azimuth2to1)
         output = (ell_dist, azimuth1to2, azimuth2to1)
@@ -363,4 +363,3 @@ def vincinvio():
     # Close Files
     outfile.close()
     csvfile.close()
-

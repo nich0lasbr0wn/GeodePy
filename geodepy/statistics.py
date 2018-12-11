@@ -9,7 +9,7 @@ def rotation_matrix(lat, lon):
     (given in decimal degrees)
     See Section 4.2.3 of the DynaNet User's Guide v3.3
     """
-    (rlat, rlon) = (radians(lat), radians(lon))
+    rlat, rlon = radians(lat), radians(lon)
     rot_matrix = matrix(
         [[-sin(rlon), -sin(rlat)*cos(rlon), cos(rlat)*cos(rlon)],
          [cos(rlon), -sin(rlat)*sin(rlon), cos(rlat)*sin(rlon)],
@@ -42,7 +42,7 @@ def error_ellipse(vcv):
 
 
 def circ_hz_pu(a, b):
-    """Calculate the circularised horizontal PU form the semi-major and
+    """Calculate the circularised horizontal PU from the semi-major and
     semi-minor axes
     """
     q0 = 1.960790

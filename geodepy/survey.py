@@ -669,14 +669,10 @@ def gsi2class(gsi_list):
     :return:
     """
     def readgsiword16(linestring, word_id):
-        try:
-            wordstart = str.find(linestring, word_id)
-            if wordstart == -1:
-                raise ValueError
-        except ValueError:
-            print('ValueError: GSI record type ' + word_id + ' not found\n'
-                  'Line Data: ' + linestring)
-            return None
+        wordstart = str.find(linestring, word_id)
+        if wordstart == -1:
+            raise ValueError('GSI record type ' + word_id + ' not found\nLine Data: ' + linestring)
+
         word_val = linestring[(wordstart + 7):(wordstart + 23)]
         word_val = word_val.lstrip('0')
         if word_val == '':
@@ -1017,18 +1013,15 @@ def va_conv(verta_hp, slope_dist, height_inst=0, height_tgt=0):
     :return: delta_ht:      Change in height between Ground Points in metres
     """
     # Convert Zenith Angle to Vertical Angle
-    try:
-        if verta_hp == 0 or verta_hp == 180:
-            raise ValueError
-        elif 0 < verta_hp < 180:
-            verta = radians(90 - hp2dec(verta_hp))
-        elif 180 < verta_hp < 360:
-            verta = radians(270 - hp2dec(verta_hp))
-        else:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Vertical Angle Invalid')
-        return
+    if verta_hp == 0 or verta_hp == 180:
+        raise ValueError('Invalid Vertical Angle')
+    elif 0 < verta_hp < 180:
+        verta = radians(90 - hp2dec(verta_hp))
+    elif 180 < verta_hp < 360:
+        verta = radians(270 - hp2dec(verta_hp))
+    else:
+        raise ValueError('Invalid Vertical Angle')
+
     # Calculate Horizontal Dist and Delta Height
     hz_dist = slope_dist * cos(verta)
     delta_ht = slope_dist * sin(verta)

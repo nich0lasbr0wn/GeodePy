@@ -195,11 +195,11 @@ def beta_coeff(ellipsoid):
     return b2, b4, b6, b8, b10, b12, b14, b16
 
 
-def psfandgridconv(xi1, eta1, lat, long, cm, conf_lat, ellipsoid=grs80):
+def psfandgridconv(xi1, eta1, lat, lon, cm, conf_lat, ellipsoid=grs80):
     A = rect_radius(ellipsoid)
     a = alpha_coeff(ellipsoid)
     lat = radians(lat)
-    long_diff = radians(long - cm)
+    lon_diff = radians(lon - cm)
 
     # Point Scale Factor
     p = 1
@@ -212,60 +212,48 @@ def psfandgridconv(xi1, eta1, lat, long, cm, conf_lat, ellipsoid=grs80):
            * (A / ellipsoid.semimaj)
            * sqrt(q**2 + p**2)
            * ((sqrt(1 + (tan(lat)**2)) * sqrt(1 - ellipsoid.ecc1sq * (sin(lat)**2)))
-              / sqrt((tan(conf_lat)**2) + (cos(long_diff)**2))))
+              / sqrt((tan(conf_lat)**2) + (cos(lon_diff)**2))))
 
     # Grid Convergence
     grid_conv = degrees(atan(abs(q / p))
-                        + atan(abs(tan(conf_lat) * tan(long_diff))
+                        + atan(abs(tan(conf_lat) * tan(lon_diff))
                                / sqrt(1 + tan(conf_lat)**2)))
-    if cm > long and lat < 0:
+    if cm > lon and lat < 0:
         grid_conv = -grid_conv
-    elif cm < long and lat > 0:
+    elif cm < lon and lat > 0:
         grid_conv = -grid_conv
 
     return psf, grid_conv
 
 
-def geo2grid(lat, long, zone=0, ellipsoid=grs80):
+def geo2grid(lat, lon, zone=0, ellipsoid=grs80):
     """
     Takes a geographic co-ordinate (latitude, longitude) and returns its corresponding
     Hemisphere, Zone and Projection Easting and Northing, Point Scale Factor and Grid
     Convergence. Default Projection is Universal Transverse Mercator Projection using
     GRS80 Ellipsoid parameters.
     :param lat: Latitude in Decimal Degrees
-    :param long: Longitude in Decimal Degrees
+    :param lon: Longitude in Decimal Degrees
     :param zone: Optional Zone Number - Only required if calculating grid co-ordinate
                 outside zone boundaries
     :param ellipsoid: Ellipsoid Object
     :return: hemisphere, zone, east (m), north (m), Point Scale Factor, Grid Convergence (Decimal Degrees)
     """
     # Input Exception Handling - UTM Extents and Values
-    try:
-        zone = int(zone)
-        if zone < 0 or zone > 60:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Zone - Zones from 1 to 60')
-        return
-    try:
-        if lat < -80 or lat > 84:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Latitude - Latitudes from -80 to +84')
-        return
-    try:
-        if long < -180 or long > 180:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Longitude - Longitudes from -180 to +180')
-        return
+    zone = int(zone)
+    if zone < 0 or zone > 60:
+        raise ValueError('Invalid Zone - Zones from 1 to 60')
+    if lat < -80 or lat > 84:
+        raise ValueError('Invalid Latitude - Latitudes from -80 to +84')
+    if lon < -180 or lon > 180:
+        raise ValueError('Invalid Longitude - Longitudes from -180 to +180')
 
     A = rect_radius(ellipsoid)
     a = alpha_coeff(ellipsoid)
     lat = radians(lat)
     # Calculate Zone
     if zone == 0:
-        zone = int((float(long) - (proj.initialcm - (1.5 * proj.zonewidth))) / proj.zonewidth)
+        zone = int((float(lon) - (proj.initialcm - (1.5 * proj.zonewidth))) / proj.zonewidth)
     cm = float(zone * proj.zonewidth) + (proj.initialcm - proj.zonewidth)
 
     # Conformal Latitude
@@ -275,10 +263,10 @@ def geo2grid(lat, long, zone=0, ellipsoid=grs80):
     conf_lat = atan(conf_lat)
 
     # Longitude Difference
-    long_diff = radians(long - cm)
+    lon_diff = radians(lon - cm)
     # Gauss-Schreiber Ratios
-    xi1 = atan(tan(conf_lat) / cos(long_diff))
-    eta1x = sin(long_diff) / (sqrt(tan(conf_lat) ** 2 + cos(long_diff) ** 2))
+    xi1 = atan(tan(conf_lat) / cos(lon_diff))
+    eta1x = sin(lon_diff) / (sqrt(tan(conf_lat) ** 2 + cos(lon_diff) ** 2))
     eta1 = log(eta1x + sqrt(1 + eta1x ** 2))
 
     # Transverse Mercator Ratios
@@ -303,7 +291,7 @@ def geo2grid(lat, long, zone=0, ellipsoid=grs80):
         north = proj.cmscale * y + falsenorth
 
     # Point Scale Factor and Grid Convergence
-    psf, grid_conv = psfandgridconv(xi1, eta1, degrees(lat), long, cm, conf_lat)
+    psf, grid_conv = psfandgridconv(xi1, eta1, degrees(lat), lon, cm, conf_lat)
 
     return hemisphere, zone, round(float(east), 4), round(float(north), 4), round(psf, 8), grid_conv
 
@@ -322,32 +310,17 @@ def grid2geo(zone, east, north, hemisphere='south', ellipsoid=grs80):
     :return: Latitude and Longitude (Decimal Degrees), Point Scale Factor, Grid Convergence (Decimal Degrees)
     """
     # Input Exception Handling - UTM Extents and Values
-    try:
-        zone = int(zone)
-        if zone < 0 or zone > 60:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Zone - Zones from 1 to 60')
-        return
-    try:
-        if east < -2830000 or east > 3830000:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Easting - Must be within 3330km of Central Meridian')
-        return
-    try:
-        if north < 0 or north > 10000000:
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Northing - Must be between 0 and 10,000,000m')
-        return
-    try:
-        h = hemisphere.lower()
-        if h != 'north' and h != 'south':
-            raise ValueError
-    except ValueError:
-        print('ValueError: Invalid Hemisphere - String, either North or South')
-        return
+    zone = int(zone)
+    if zone < 0 or zone > 60:
+        raise ValueError('Invalid Zone - Zones from 1 to 60')
+    if east < -2830000 or east > 3830000:
+        raise ValueError('Invalid Easting - Must be within 3330km of Central Meridian')
+    if north < 0 or north > 10000000:
+        raise ValueError('Invalid Northing - Must be between 0 and 10,000,000m')
+
+    h = hemisphere.lower()
+    if h != 'north' and h != 'south':
+        raise ValueError('Invalid Hemisphere - String, either North or South')
 
     A = rect_radius(ellipsoid)
     b = beta_coeff(ellipsoid)
@@ -401,13 +374,13 @@ def grid2geo(zone, east, north, hemisphere='south', ellipsoid=grs80):
 
     # Compute Longitude
     cm = float((zone * proj.zonewidth) + proj.initialcm - proj.zonewidth)
-    long_diff = degrees(atan(sinh(eta1) / cos(xi1)))
-    long = cm + long_diff
+    lon_diff = degrees(atan(sinh(eta1) / cos(xi1)))
+    lon = cm + lon_diff
 
     # Point Scale Factor and Grid Convergence
-    psf, grid_conv = psfandgridconv(xi1, eta1, lat, long, cm, conf_lat)
+    psf, grid_conv = psfandgridconv(xi1, eta1, lat, lon, cm, conf_lat)
 
-    return round(lat, 11), round(long, 11), round(psf, 8), grid_conv
+    return round(lat, 11), round(lon, 11), round(psf, 8), grid_conv
 
 
 def xyz2llh(x, y, z, ellipsoid=grs80):
@@ -419,7 +392,7 @@ def xyz2llh(x, y, z, ellipsoid=grs80):
     Degrees and Ellipsoidal Height in Metres
     """
     # Calculate Longitude
-    long = atan2(y, x)
+    lon = atan2(y, x)
     # Calculate Latitude
     p = sqrt(x**2 + y**2)
     latinit = atan((z*(1+ellipsoid.ecc2sq))/p)
@@ -433,27 +406,27 @@ def xyz2llh(x, y, z, ellipsoid=grs80):
     ellht = p/(cos(lat)) - nu
     # Convert Latitude and Longitude to Degrees
     lat = degrees(lat)
-    long = degrees(long)
-    return lat, long, ellht
+    lon = degrees(lon)
+    return lat, lon, ellht
 
 
-def llh2xyz(lat, long, ellht, ellipsoid=grs80):
+def llh2xyz(lat, lon, ellht, ellipsoid=grs80):
     # Add input for ellipsoid (default: grs80)
     """
     Input: Latitude and Longitude in Decimal Degrees, Ellipsoidal Height in metres
     Output: Cartesian X, Y, Z Coordinates in metres
     """
-    # Convert lat & long to radians
+    # Convert lat & lon to radians
     lat = radians(lat)
-    long = radians(long)
+    lon = radians(lon)
     # Calculate Ellipsoid Radius of Curvature in the Prime Vertical - nu
     if lat == 0:
         nu = grs80.semimaj
     else:
         nu = ellipsoid.semimaj/(sqrt(1 - ellipsoid.ecc1sq * (sin(lat)**2)))
     # Calculate x, y, z
-    x = (nu + ellht) * cos(lat) * cos(long)
-    y = (nu + ellht) * cos(lat) * sin(long)
+    x = (nu + ellht) * cos(lat) * cos(lon)
+    y = (nu + ellht) * cos(lat) * sin(lon)
     z = ((ellipsoid.semimin**2 / ellipsoid.semimaj**2) * nu + ellht) * sin(lat)
     return x, y, z
 
@@ -562,11 +535,11 @@ def grid2geoio():
         east = float(row[2])
         north = float(row[3])
         # Calculate Conversion
-        lat, long, psf, grid_conv = grid2geo(zone, east, north)
+        lat, lon, psf, grid_conv = grid2geo(zone, east, north)
         lat = dec2hp(lat)
-        long = dec2hp(long)
+        lon = dec2hp(lon)
         grid_conv = dec2hp(grid_conv)
-        output = [pt_num, lat, long, psf, grid_conv]
+        output = [pt_num, lat, lon, psf, grid_conv]
         outfilewriter.writerow(output)
     # Close Files
     outfile.close()
@@ -602,9 +575,9 @@ def geo2gridio():
     for row in csvreader:
         pt_num = row[0]
         lat = hp2dec(float(row[1]))
-        long = hp2dec(float(row[2]))
+        lon = hp2dec(float(row[2]))
         # Calculate Conversion
-        hemisphere, zone, east, north, psf, grid_conv = geo2grid(lat, long)
+        hemisphere, zone, east, north, psf, grid_conv = geo2grid(lat, lon)
         grid_conv = hp2dec(grid_conv)
         output = [pt_num] + [hemisphere, zone, east, north, psf, grid_conv]
         outfilewriter.writerow(output)
